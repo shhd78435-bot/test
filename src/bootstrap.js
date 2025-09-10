@@ -4,9 +4,11 @@ import messageRouter from "./modules/messageModule/message.controller.js"
 import connectDB from "./DB/connection.js"
 import { NotFoundUrlException } from "./utils/exceptions.js"
 import { sendEmail } from "./utils/sendEmail/sendEmail.js"
+import cors from "cors"
 
 const bootsrap = async (app, express) => {
     app.use(express.json())
+    app.use(cors())
     const port = process.env.PORT
     await connectDB()
     app.use("/users", userRouter)
@@ -30,6 +32,9 @@ const bootsrap = async (app, express) => {
         console.log("server started on port", port);
 
     })
+    const phoneExp=/^(\+20|0020|0?)(1)([0125])\d{8}$/
+    console.log(phoneExp.test("01229789880"));
+    
     
     
 }

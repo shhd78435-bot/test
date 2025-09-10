@@ -3,6 +3,9 @@ import { decryption, encryption } from "../../utils/crypto.js";
 import bcrypt from "bcryptjs";
 import { hashSync } from "bcryptjs";
 import { compare } from "../../utils/bycrypt.js";
+import Joi from "joi";
+//import { object, string } from "joi";
+
 
 export const Gender={
     male:"male",
@@ -16,6 +19,11 @@ export const Roles={
 }
 Object.freeze(Roles)
 
+export const providers={
+    google:"google",
+    system:"system"
+}
+
 
 const userSchema= new Schema({
     firstName:{
@@ -24,7 +32,6 @@ const userSchema= new Schema({
     },
     lastName:{
         type:String,
-        required:true
     },
     email:{
         type:String,
@@ -33,7 +40,13 @@ const userSchema= new Schema({
     },
     password:{
         type:String,
-        required:true,
+        required:function(){
+            if(this.provider==providers.google){
+                return false
+            }else if(this.provider==providers.system){
+                return true
+            }
+        },
         set(value){
             return hashSync(value,Number(process.env.BCRYPT_SALT_ROUNDS))
 
@@ -57,11 +70,15 @@ const userSchema= new Schema({
     },
     phone:{
         type:String,
-        required:true,
+        required:function(){
+            if(this.provider==providers.google){
+                return false
+            }else if(this.provider==providers.system){
+                return true
+            }
+        },
         set(value){
             return encryption(value)
-
-
         },
         get(value){
             return decryption(value)
@@ -72,6 +89,19 @@ const userSchema= new Schema({
         type:Boolean,
         default:false
     },
+    vertificationCode:{
+        type:String,
+    },
+    codeExpire:{
+        type:Date
+    },
+    failedAttempts:{
+        type:Number,
+        default:0
+    },
+    banned:{
+        type:Date
+    },
     emailOtp:{
         otp:String,
         expiredAt:Date
@@ -81,7 +111,15 @@ const userSchema= new Schema({
         otp:String,
         expiredAt:Date
 
-    }
+    },
+    changedCredentialsAt:Date,
+    provider:{
+        type:String,
+        enum:Object.values(providers),
+        default:providers.system
+    },
+    socialId:String
+
 
 },{
     timestamps:true,

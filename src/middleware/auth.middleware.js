@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken"
 import { userModel } from "../DB/models/user.model.js"
-import { InvalidTokenException, NotFoundException } from "../utils/exceptions.js"
+import { InvalidTokenException, LoginAgainException, NotConfirmedEmailException, NotFoundException } from "../utils/exceptions.js"
 import { model } from "mongoose"
 import CryptoJS from "crypto-js"
 
@@ -27,9 +27,15 @@ export const decodeToken=async({authorization="",type=tokenTypes.access,next})=>
 
     const data=jwt.verify(token,signature)
     const user=await userModel.findById(data._id)
-    
+
     if(!user){
         return next(new NotFoundException("user"))
+    }
+    if(!user.confirmed){
+        return next (new NotConfirmedEmailException())
+    }
+    if(user.changedCredentialsAt?.getTime()>data.iat*1000){
+        throw new LoginAgainException()
     }
     return user
 

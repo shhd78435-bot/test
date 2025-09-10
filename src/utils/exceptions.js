@@ -40,5 +40,25 @@ export class OTPExpiredException extends Error {
         super("OTP expired!",{cause:409})
     }
 }
+export class NotConfirmedEmailException extends Error {
+    constructor(){
+        super("please confirm your email",{cause:400})
+    }
+}
+export class LoginAgainException extends Error {
+    constructor(){
+        super("please login again",{cause:401})
+    }
+}
 
+export class InvalidLoginMethodException extends Error {
+    constructor(){
+        super("in-valid login method",{cause:400})
+    }
+}
+export class NotFoundUserException extends Error {
+    constructor(){
+        super("not found user",{cause:400})
+    }
+}
 
