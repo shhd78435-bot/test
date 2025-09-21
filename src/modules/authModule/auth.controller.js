@@ -16,6 +16,7 @@ router.post("/change-password",authServices.changePass)
 router.post("/social-login",authServices.socialLogin)
 router.post("/send-code",authServices.sendVertificationCode)
 router.post("/verify-code",authServices.VerifyCode)
-
+router.patch("/update-email",auth(),authServices.updateEmail)
+router.patch("/confirm-new-email",auth(),authServices.confirmNewEmail)
 
 export default router

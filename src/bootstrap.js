@@ -5,16 +5,22 @@ import connectDB from "./DB/connection.js"
 import { NotFoundUrlException } from "./utils/exceptions.js"
 import { sendEmail } from "./utils/sendEmail/sendEmail.js"
 import cors from "cors"
-
+import multer from "multer"
+import { uploadFile } from "./utils/multer/multer.js"
+import fs from "fs/promises"
+import { auth } from "./middleware/auth.middleware.js"
+auth
 const bootsrap = async (app, express) => {
     app.use(express.json())
     app.use(cors())
     const port = process.env.PORT
     await connectDB()
+    
     app.use("/users", userRouter)
     app.use("/auth", authRouter)
     app.use("/messages", messageRouter)
     
+    app.use("/uploads",express.static("./uploads"))
     
     app.all("{/*urls}",(req,res,next)=>{
         return next(new NotFoundUrlException())
@@ -32,9 +38,15 @@ const bootsrap = async (app, express) => {
         console.log("server started on port", port);
 
     })
-    const phoneExp=/^(\+20|0020|0?)(1)([0125])\d{8}$/
-    console.log(phoneExp.test("01229789880"));
-    
+
+     const cb=(err,name)=>{
+        if(err){
+            return false
+        }else{
+            return name
+        }
+
+    }
     
     
 }

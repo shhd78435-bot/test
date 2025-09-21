@@ -1,10 +1,11 @@
-import { Schema,get,model } from "mongoose";
+import { Schema,Types,get,model } from "mongoose";
 import { decryption, encryption } from "../../utils/crypto.js";
 import bcrypt from "bcryptjs";
 import { hashSync } from "bcryptjs";
 import { compare } from "../../utils/bycrypt.js";
-import Joi from "joi";
-//import { object, string } from "joi";
+import { profileImage } from "../../modules/userModule/user.services.js";
+//import Joi from "joi";
+//import { object } from "joi";
 
 
 export const Gender={
@@ -23,6 +24,16 @@ export const providers={
     google:"google",
     system:"system"
 }
+Object.freeze(providers)
+
+const otpSchema=new Schema({
+    otp:String,
+    expiredAt:Date
+
+},{
+    _id:false
+
+})
 
 
 const userSchema= new Schema({
@@ -102,23 +113,34 @@ const userSchema= new Schema({
     banned:{
         type:Date
     },
-    emailOtp:{
-        otp:String,
-        expiredAt:Date
-
-    },
-    passwordOtp:{
-        otp:String,
-        expiredAt:Date
-
-    },
+    emailOtp:otpSchema,
+    newEmailOtp:otpSchema,
+    oldEmailOtp:otpSchema,
+    passwordOtp:otpSchema,
+    newEmail:String,
     changedCredentialsAt:Date,
     provider:{
         type:String,
         enum:Object.values(providers),
         default:providers.system
     },
-    socialId:String
+    socialId:String,
+    isDeleted:{
+        type:Boolean,
+        default:false
+    },
+    deletedBy:{
+        type:Types.ObjectId,
+        ref:"user"
+    },
+    profileImage:{
+        secure_url:String,
+        public_id:String
+    },
+    coverImages:[{
+        secure_url:String,
+        public_id:String
+    }]
 
 
 },{

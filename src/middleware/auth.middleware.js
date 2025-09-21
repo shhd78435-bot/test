@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken"
 import { userModel } from "../DB/models/user.model.js"
-import { InvalidTokenException, LoginAgainException, NotConfirmedEmailException, NotFoundException } from "../utils/exceptions.js"
+import { InvalidTokenException, LoginAgainException, NotConfirmedEmailException, NotFoundException, UnAuthorizedException } from "../utils/exceptions.js"
 import { model } from "mongoose"
 import CryptoJS from "crypto-js"
 
@@ -26,7 +26,13 @@ export const decodeToken=async({authorization="",type=tokenTypes.access,next})=>
     }
 
     const data=jwt.verify(token,signature)
-    const user=await userModel.findById(data._id)
+    const user=await userModel.findOne({
+        model:userModel,
+        filter:{
+            _id:data._id,
+            isDeleted:false
+        }
+    })
 
     if(!user){
         return next(new NotFoundException("user"))
@@ -48,4 +54,16 @@ export const auth=()=>{
         req.user=user
         next()
     }
+}
+export const allowTo=(...roles)=>{
+    return async(req,res,next)=>{
+        const user=req.user
+        if(roles.includes(user.role)){
+            throw new UnAuthorizedException()
+        }
+
+        next()
+    }
+
+
 }

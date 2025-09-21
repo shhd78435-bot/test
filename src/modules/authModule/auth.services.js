@@ -9,7 +9,7 @@ import { decryption, encryption } from "../../utils/crypto.js"
 import { compareSync, hash, hashSync } from "bcryptjs"
 import { compare } from "../../utils/bycrypt.js"
 import { customAlphabet, nanoid } from "nanoid"
-import { sendEmail } from "../../utils/sendEmail/sendEmail.js"
+import { createOtp, sendEmail } from "../../utils/sendEmail/sendEmail.js"
 import { template } from "../../utils/sendEmail/generateHtml.js"
 import {
 	ReasonPhrases,
@@ -27,8 +27,7 @@ export const signup= async(req,res,next)=>{
     if(isExist){
          throw new NotValidEmailException()
     }
-    const custom= customAlphabet("0123456789")
-    const otp = custom(6)
+    const otp=createOtp()
     const subject="email confirmation"
     const html=template(otp,firstName,subject)
     const user =await userModel.create({
@@ -108,17 +107,14 @@ export const login=async(req,res,next)=>{
    
     const user=await userModel.findOne({email})
     console.log({postPass:password,DBPass:user.password});
-    
+    if(!user || !user.checkPassword(password)){
+        throw new InvalidCredentialsException()
+    }
     if(!user?.confirmed){
         throw new NotConfirmedEmailException()
     }
     if(user.provider==providers.google){
         throw new InvalidLoginMethodException()
-    }
-    
-    
-    if(!user || !user.checkPassword(password)){
-        throw new InvalidCredentialsException()
     }
     const accessToken=jwt.sign({
         _id:user._id
@@ -299,4 +295,50 @@ export const VerifyCode=async(req,res,next)=>{
         
     }
 }
+export const updateEmail = async(req,res,next)=>{
+    const user=req.user
+    const {email}=req.body
+    if(user.email == email){
+        throw new Error("update your email with new email",{cause:StatusCodes.BAD_REQUEST})
+    }
+    const isExist= await findByEmail(email)
+    if(isExist){
+        throw new NotValidEmailException()
+    }
 
+    const oldEmailOtp= createOtp()
+    const oldEmailHTML=template(oldEmailOtp,user.firstName,"confirm update email")
+    sendEmail({to:user.email,subject:"confirm update email",html:oldEmailHTML})
+    user.oldEmailOtp={
+        otp:hash(oldEmailOtp),
+        expiredAt:Date.now()+5*60*60*1024
+    }
+    const newEmailOtp= createOtp()
+    const newEmailHTML=template(newEmailOtp,user.name,"confirm new email")
+    sendEmail({to: email,subject:"confirm new email",html:newEmailHTML})
+    user.newEmailOtp={
+        otp:hash(newEmailOtp),
+        expiredAt:Date.now()+5*60*60*1024
+    }
+    user.newEmail=email
+    await user.save()
+
+    return successHandler({res})
+}
+export const confirmNewEmail=async(req,res,next)=>{
+    const user=req.user
+    const{oldEmailOtp,newEmailOtp}=req.body
+     if(user.oldEmailOtp.expiredAt<= Date.now()|| user.newEmailOtp.expiredAt<=Date.now()){
+        throw new InvalidOTPException()
+    }
+    if(!compare(oldEmailOtp,user.oldEmailOtp.otp) || !compare(newEmailOtp,user.newEmailOtp.otp) ){
+        throw new InvalidOTPException()
+    }
+    user.email=user.newEmail
+    user.newEmail=undefined
+    user.oldEmailOtp=undefined
+    user.newEmailOtp=undefined
+    await user.save()
+    return successHandler({res,data:user.newEmail})
+    
+}

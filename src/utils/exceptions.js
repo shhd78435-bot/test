@@ -61,4 +61,9 @@ export class NotFoundUserException extends Error {
         super("not found user",{cause:400})
     }
 }
+export class UnAuthorizedException extends Error{
+    constructor(){
+        super("UnAuthorized",{cause:401})
+    }
+}
 
